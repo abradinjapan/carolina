@@ -1,4 +1,3 @@
 # The Carolina Programming Language
 
-Imagine North Carolina, but cyberpunk...
-\- Some random guy.
+A programming language written in DragonForge.
