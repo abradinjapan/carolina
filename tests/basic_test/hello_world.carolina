@@ -1,0 +1,5 @@
+[ main ]
+carolina.main()() = {
+    [ print hello world ]
+    carolina.print.buffer_as_string("Hello World!%0a;")()
+}

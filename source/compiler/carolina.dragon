@@ -1,0 +1,47 @@
+[ main ]
+dragon.main()() = {
+    [ setup welcome message ]
+    dragon.set("Made in North Carolina!.%0a;")(message)
+    dragon.print.buffer_as_string(message)()
+}
+
+[ compile files ]
+carolina.gather_carolina_files(json_file_path !dragon.buffer)(files !dragon.list) = {
+    [ open json file ]
+    dragon.file_to_buffer(json_file_path)(json_buffer)
+    dragon.integer.within_range(dragon.constant.0, json_buffer:start, dragon.constant.0)(is_empty, is_not_empty)
+    @file_path_error is_empty = {
+        [ print error message ]
+        dragon.set("Carolina Error: Starting JSON file was not found.")(message)
+        dragon.print.buffer_as_string(message)()
+
+        [ exit function ]
+        dragon.jump.bottom(dragon.always, @dragon.master_scope)()
+    }
+
+    [ compile json ]
+    dragon.json.compile(json_buffer, dragon.false)(json_workspace)
+    @json_error json_workspace:error:occured = {
+        [ print error message ]
+        dragon.set("Carolina Error: Invalid json file.")(message)
+        dragon.print.buffer_as_string(message)()
+
+        [ clean up ]
+        dragon.json.compile.close.workspace(json_workspace)()
+        dragon.buffer.return(json_buffer)()
+
+        [ exit function ]
+        dragon.jump.bottom(dragon.always, @dragon.master_scope)()
+    }
+
+    [ pack files into list ]
+    [ open list ]
+    dragon.structure.byte_size(json_buffer)(buffer.byte_size)
+    dragon.integer.multiply(buffer.byte_size, dragon.64)(increase)
+    dragon.list.open(increase)(file_paths)
+
+    [ append file paths ]
+    [ get files keyword ]
+    dragon.set("files")(keyword)
+    dragon.json.traverse.retrive_parsling.by_name(json_workspace:parslings:root, keyword)()
+}

@@ -1,0 +1,162 @@
+[ lexlings ]
+!carolina.lexlings(
+    list !dragon.list
+)
+
+[ open lexlings ]
+carolina.lexlings.open()(lexlings !carolina.lexlings) = {
+    [ create dummy lexling ]
+    dragon.pack.null()(lexling.dummy !carolina.lexling)
+
+    [ calculate increase ]
+    dragon.set(dragon.integer.1024)(increase)
+    dragon.structure.byte_size(lexling.dummy)(lexling.size)
+    dragon.integer.multiply(increase, lexling.size)(increase)
+
+    [ open list ]
+    dragon.list.open(increase)(lexlings:list)
+}
+
+[ close lexlings ]
+carolina.lexlings.close(lexlings !carolina.lexlings)() = {
+    [ close list ]
+    dragon.list.close(lexlings:list)()
+}
+
+[ lexling ]
+!carolina.lexling(
+    type !dragon.cell,
+    value !dragon.buffer,
+    location !dragon.text.location
+)
+
+[ lexling types ]
+!carolina.lexling.types(
+    invalid !dragon.cell,
+    name !dragon.cell,
+    string !dragon.cell,
+    colon !dragon.cell,
+    exclamation_point !dragon.cell,
+    at !dragon.cell,
+    left_parenthesis !dragon.cell,
+    right_parenthesis !dragon.cell,
+    left_curly_bracket !dragon.cell,
+    right_curly_bracket !dragon.cell,
+    end_of_file !dragon.cell,
+    end_of_files !dragon.cell
+)
+
+[ lex files ]
+carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.error) = {
+    [ setup lexling type values ]
+    dragon.pack.increment(dragon.constant.0, dragon.constant.1)(types !carolina.lexling.types)
+
+    [ setup characters ]
+    dragon.set(dragon.integer.32)(whitespace.range.end)
+    dragon.pack(dragon.constant.0, whitespace.range.end)(whitespace !dragon.buffer)
+    dragon.set(dragon.hexadecimal.0A)(new_line)
+    dragon.set(dragon.hexadecimal.7B)(left_curly_bracket)
+    dragon.set(dragon.hexadecimal.7D)(right_curly_bracket)
+    dragon.set(dragon.hexadecimal.5B)(left_square_bracket)
+    dragon.set(dragon.hexadecimal.5D)(right_square_bracket)
+    dragon.set(dragon.hexadecimal.22)(double_quote)
+    dragon.set(dragon.hexadecimal.2C)(comma)
+    dragon.set(dragon.hexadecimal.3A)(colon)
+    dragon.set(dragon.hexadecimal.30)(decimal_digits.start)
+    dragon.set(dragon.hexadecimal.39)(decimal_digits.end)
+
+    [ open lexlings ]
+    carolina.lexlings.open()(lexlings)
+
+    [ setup buffers current ]
+    dragon.pack(buffers, buffers:start)(current.buffer !dragon.current)
+
+    [ setup stats ]
+    dragon.pack(dragon.constant.0, dragon.constant.1, dragon.constant.0)(current_location !dragon.text.location)
+
+    [ loop over each individual buffer ]
+    @loop.lex.buffers dragon.always = {
+        [ check for condition ]
+        dragon.current.within_range(current.buffer)(in_range, out_of_range)
+        dragon.jump.bottom(out_of_range, @loop.lex.buffers)()
+
+        [ get character current from buffer ]
+        dragon.structure.byte_size(buffers)(buffer.byte_size)
+        dragon.buffer.calculate.end_address(buffers:start, buffer.byte_size)(current.buffer.end)
+        dragon.pack(buffers:start, current.buffer.end)(character_buffer !dragon.buffer)
+        dragon.pack(character_buffer, character_buffer:start)(current.character !dragon.current)
+
+        [ setup location information ]
+        dragon.copy(dragon.constant.1)(current_location:line_number)
+        dragon.copy(dragon.constant.0)(current_location:character_index)
+
+        [ loop over characters ]
+        @loop.lex.characters dragon.always = {
+            [ check for condition ]
+            dragon.current.within_range(current.character)(in_range, out_of_range)
+            dragon.jump.bottom(out_of_range, @loop.lex.characters)()
+
+            [ setup value buffer ]
+            dragon.pack(current.character:progress, current.character:progress)(current_value !dragon.buffer)
+
+            [ get character ]
+            dragon.address_to_cell(current.character:progress, dragon.ascii_character.byte_size)(character, current.character:progress)
+
+            [ determine type ]
+            [ check for whitespace ]
+            dragon.integer.within_range(whitespace:start, character, whitespace:end)(in_range, out_of_range)
+            
+            [ if whitespace, skip character ]
+            @is_whitespace in_range = {
+                [ check for newline ]
+                dragon.integer.within_range(new_line, character, new_line)(in_range, out_of_range)
+                @is_whitespace.new_line_detected in_range = {
+                    [ increment line ]
+                    dragon.integer.add(current_location:line_number, dragon.constant.1)(current_location:line_number)
+                }
+
+                [ next character ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+
+                [ jump to next character check ]
+                dragon.jump.top(dragon.always, @loop.lex.characters)()
+            }
+
+            [ if is comment ]
+            [ TODO ]
+
+            [ if is single character lexling ]
+            dragon.integer.within_range(left_curly_bracket, character, left_curly_bracket)(in_range, out_of_range)
+            @left_curly_bracket in_range = {
+                [ create lexling ]
+                dragon.pack(types:left_curly_bracket, current_value, current_location)(lexling !carolina.lexling)
+
+                [ print lexling ]
+                carolina.lex.print_lexling(lexling)()
+            }
+        }
+    }
+}
+
+[ print a lexling ]
+carolina.lex.print_lexling(lexling !carolina.lexling)() = {
+    [ setup common strings ]
+    dragon.set("{ ")(header)
+    dragon.set(", ")(separator)
+    dragon.set(" }")(footer)
+
+    [ print lexling ]
+    dragon.print.buffer_as_string(header)()
+    dragon.print.integer.unsigned(lexling:type)()
+    dragon.print.buffer_as_string(separator)()
+    dragon.print.buffer_as_string(lexling:value)()
+    dragon.print.buffer_as_string(separator)()
+    dragon.print.buffer_as_string(header)()
+    dragon.print.integer.unsigned(lexling:location:file_index)()
+    dragon.print.buffer_as_string(separator)()
+    dragon.print.integer.unsigned(lexling:location:line_number)()
+    dragon.print.buffer_as_string(separator)()
+    dragon.print.integer.unsigned(lexling:location:character_index)()
+    dragon.print.buffer_as_string(footer)()
+    dragon.print.buffer_as_string(footer)()
+}
