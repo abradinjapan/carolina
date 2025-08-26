@@ -65,11 +65,18 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
     dragon.set(dragon.hexadecimal.30)(decimal_digits.start)
     dragon.set(dragon.hexadecimal.39)(decimal_digits.end)
 
+    [ setup other data ]
+    dragon.structure.byte_size(buffers)(buffer.byte_size)
+
+    [ DEBUG ]
+    dragon.set("Lexing!%0a;")(message)
+    dragon.print.buffer_as_string(message)()
+
     [ open lexlings ]
     carolina.lexlings.open()(lexlings)
 
     [ setup buffers current ]
-    dragon.pack(buffers, buffers:start)(current.buffer !dragon.current)
+    dragon.pack(buffers, buffers:start)(current.buffers !dragon.current)
 
     [ setup stats ]
     dragon.pack(dragon.constant.0, dragon.constant.1, dragon.constant.0)(current_location !dragon.text.location)
@@ -77,13 +84,12 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
     [ loop over each individual buffer ]
     @loop.lex.buffers dragon.always = {
         [ check for condition ]
-        dragon.current.within_range(current.buffer)(in_range, out_of_range)
+        dragon.current.within_range(current.buffers)(in_range, out_of_range)
         dragon.jump.bottom(out_of_range, @loop.lex.buffers)()
 
         [ get character current from buffer ]
-        dragon.structure.byte_size(buffers)(buffer.byte_size)
-        dragon.buffer.calculate.end_address(buffers:start, buffer.byte_size)(current.buffer.end)
-        dragon.pack(buffers:start, current.buffer.end)(character_buffer !dragon.buffer)
+        dragon.buffer.calculate.end_address(current.buffers:progress, buffer.byte_size)(current.buffer.end)
+        dragon.pack(current.buffers:progress, current.buffer.end)(character_buffer !dragon.buffer)
         dragon.pack(character_buffer, character_buffer:start)(current.character !dragon.current)
 
         [ setup location information ]
@@ -96,11 +102,15 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.current.within_range(current.character)(in_range, out_of_range)
             dragon.jump.bottom(out_of_range, @loop.lex.characters)()
 
+            [ DEBUG ]
+            dragon.set("Getting Next Character.%0a;")(message)
+            dragon.print.buffer_as_string(message)()
+
             [ setup value buffer ]
             dragon.pack(current.character:progress, current.character:progress)(current_value !dragon.buffer)
 
             [ get character ]
-            dragon.address_to_cell(current.character:progress, dragon.ascii_character.byte_size)(character, current.character:progress)
+            dragon.address_to_cell(current.character:progress, dragon.ascii_character.byte_size)(character, advancement)
 
             [ determine type ]
             [ check for whitespace ]
@@ -117,6 +127,7 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
 
                 [ jump to next character check ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -133,8 +144,20 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
 
                 [ print lexling ]
                 carolina.lex.print_lexling(lexling)()
+
+                [ jump back to loop start ]
+                dragon.jump.top(dragon.always, @loop.lex.characters)()
             }
+
+            [ error ]
+            
         }
+
+        [ next buffer ]
+        dragon.integer.add(current.buffers:progress, buffer.byte_size)(current.buffers:progress)
+
+        [ jump back to top for next buffer ]
+        dragon.jump.top(dragon.always, @loop.lex.buffers)()
     }
 }
 

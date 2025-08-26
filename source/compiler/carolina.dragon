@@ -3,10 +3,24 @@ dragon.main()() = {
     [ setup welcome message ]
     dragon.set("Made in North Carolina!.%0a;")(message)
     dragon.print.buffer_as_string(message)()
+
+    [ compile files ]
+    dragon.set("./tests/basic_test/files.json")(json_file_path)
+    carolina.compile(json_file_path)()
 }
 
 [ compile files ]
-carolina.gather_carolina_files(json_file_path !dragon.buffer)(files !dragon.list) = {
+carolina.compile(json_file_path !dragon.buffer)() = {
+    [ get files ]
+    carolina.gather_carolina_files(json_file_path)(files, success, failure)
+    dragon.jump.bottom(failure, @dragon.master_scope)()
+
+    [ lex files ]
+    carolina.lex(files)(lexlings, error)
+}
+
+[ get files ]
+carolina.gather_carolina_files(json_file_path !dragon.buffer)(files !dragon.buffer, success !dragon.cell, failure !dragon.cell) = {
     [ open json file ]
     dragon.file_to_buffer(json_file_path)(json_buffer)
     dragon.integer.within_range(dragon.constant.0, json_buffer:start, dragon.constant.0)(is_empty, is_not_empty)
@@ -14,6 +28,11 @@ carolina.gather_carolina_files(json_file_path !dragon.buffer)(files !dragon.list
         [ print error message ]
         dragon.set("Carolina Error: Starting JSON file was not found.")(message)
         dragon.print.buffer_as_string(message)()
+        dragon.print.new_line()()
+
+        [ set status ]
+        dragon.copy(dragon.false)(success)
+        dragon.copy(dragon.true)(failure)
 
         [ exit function ]
         dragon.jump.bottom(dragon.always, @dragon.master_scope)()
@@ -25,10 +44,15 @@ carolina.gather_carolina_files(json_file_path !dragon.buffer)(files !dragon.list
         [ print error message ]
         dragon.set("Carolina Error: Invalid json file.")(message)
         dragon.print.buffer_as_string(message)()
+        dragon.print.new_line()()
 
         [ clean up ]
         dragon.json.compile.close.workspace(json_workspace)()
         dragon.buffer.return(json_buffer)()
+
+        [ set status ]
+        dragon.copy(dragon.false)(success)
+        dragon.copy(dragon.true)(failure)
 
         [ exit function ]
         dragon.jump.bottom(dragon.always, @dragon.master_scope)()
@@ -36,12 +60,79 @@ carolina.gather_carolina_files(json_file_path !dragon.buffer)(files !dragon.list
 
     [ pack files into list ]
     [ open list ]
+    dragon.set(dragon.integer.1024)(increase)
     dragon.structure.byte_size(json_buffer)(buffer.byte_size)
-    dragon.integer.multiply(buffer.byte_size, dragon.64)(increase)
-    dragon.list.open(increase)(file_paths)
+    dragon.integer.multiply(increase, buffer.byte_size)(increase)
+    dragon.list.open(increase)(files_list)
 
-    [ append file paths ]
     [ get files keyword ]
-    dragon.set("files")(keyword)
-    dragon.json.traverse.retrive_parsling.by_name(json_workspace:parslings:root, keyword)()
+    dragon.set("file_paths")(keyword)
+    dragon.json.traverse.retrieve_parsling.by_name(json_workspace:parslings:root, keyword)(json_paths_parsling, found, not_found)
+    dragon.json.traverse.calculate.parsling_list_metadata(json_paths_parsling)(content, parsling.byte_size, parsling_count)
+
+    [ setup math ]
+    dragon.integer.subtract(parsling_count, dragon.constant.1)(max_parsling_index)
+    dragon.copy(dragon.constant.0)(current_parsling_index)
+
+    [ append file paths to list ]
+    @get_files.loop dragon.always = {
+        [ check for loop end ]
+        dragon.integer.within_range(dragon.constant.0, current_parsling_index, max_parsling_index)(in_range, out_of_range)
+        dragon.jump.bottom(out_of_range, @get_files.loop)()
+
+        [ get file path ]
+        dragon.json.traverse.retrieve_parsling.by_index(json_paths_parsling, current_parsling_index)(found_parsling, valid_index, invalid_index)
+
+        [ trim double quotes off of file path ]
+        carolina.string.trim_double_quotes(found_parsling:value.datum:raw)(trimmed_file_path)
+
+        [ load file ]
+        dragon.file_to_buffer(trimmed_file_path)(file)
+        dragon.integer.within_range(dragon.constant.0, file:start, dragon.constant.0)(not_loaded, loaded)
+        @get_files.error not_loaded = {
+            [ print error message ]
+            dragon.set("Carolina Error: Invalid file path inside json file.")(message)
+            dragon.print.buffer_as_string(trimmed_file_path)()
+            dragon.print.buffer_as_string(message)()
+            dragon.print.new_line()()
+
+            [ clean up ]
+            dragon.json.compile.close.workspace(json_workspace)()
+            dragon.buffer.return(json_buffer)()
+            dragon.list.close(files_list)()
+
+            [ set status ]
+            dragon.copy(dragon.false)(success)
+            dragon.copy(dragon.true)(failure)
+
+            [ exit function ]
+            dragon.jump.bottom(dragon.always, @dragon.master_scope)()
+        }
+
+        [ append file ]
+        dragon.list.append.buffer(files_list, file)(files_list)
+
+        [ next file index ]
+        dragon.integer.add(current_parsling_index, dragon.constant.1)(current_parsling_index)
+
+        [ jump to top of loop ]
+        dragon.jump.top(dragon.always, @get_files.loop)()
+    }
+
+    [ change from list to buffer ]
+    dragon.list.duplicate_content(files_list)(files)
+
+    [ deallocate old list ]
+    dragon.list.close(files_list)()
+
+    [ set status ]
+    dragon.copy(dragon.true)(success)
+    dragon.copy(dragon.false)(failure)
+}
+
+[ trim double quotes off of string ]
+carolina.string.trim_double_quotes(input !dragon.buffer)(output !dragon.buffer) = {
+    [ trim ]
+    dragon.integer.add(input:start, dragon.constant.1)(output:start)
+    dragon.integer.subtract(input:end, dragon.constant.1)(output:end)
 }
