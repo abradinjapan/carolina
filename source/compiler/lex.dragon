@@ -33,15 +33,16 @@ carolina.lexlings.close(lexlings !carolina.lexlings)() = {
 [ lexling types ]
 !carolina.lexling.types(
     invalid !dragon.cell,
+    left_parenthesis !dragon.cell,
+    right_parenthesis !dragon.cell,
+    left_curly_bracket !dragon.cell,
+    right_curly_bracket !dragon.cell,
     name !dragon.cell,
     string !dragon.cell,
     colon !dragon.cell,
     exclamation_point !dragon.cell,
     at !dragon.cell,
-    left_parenthesis !dragon.cell,
-    right_parenthesis !dragon.cell,
-    left_curly_bracket !dragon.cell,
-    right_curly_bracket !dragon.cell,
+    equals_sign !dragon.cell,
     end_of_file !dragon.cell,
     end_of_files !dragon.cell
 )
@@ -64,6 +65,7 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
     dragon.set(dragon.hexadecimal.22)(double_quote)
     dragon.set(dragon.hexadecimal.2C)(comma)
     dragon.set(dragon.hexadecimal.3A)(colon)
+    dragon.set(dragon.hexadecimal.3D)(equals_sign)
     dragon.set(dragon.hexadecimal.30)(decimal_digits.start)
     dragon.set(dragon.hexadecimal.39)(decimal_digits.end)
 
@@ -191,6 +193,42 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             @right_parenthesis in_range = {
                 [ create lexling ]
                 dragon.pack(types:right_parenthesis, current_value, current_location)(lexling !carolina.lexling)
+
+                [ next character ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
+
+                [ print lexling ]
+                carolina.lex.print_lexling(lexling)()
+                dragon.print.new_line()()
+
+                [ jump back to loop start ]
+                dragon.jump.top(dragon.always, @loop.lex.characters)()
+            }
+
+            [ colon ]
+            dragon.integer.within_range(colon, character, colon)(in_range, out_of_range)
+            @colon in_range = {
+                [ create lexling ]
+                dragon.pack(types:colon, current_value, current_location)(lexling !carolina.lexling)
+
+                [ next character ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
+
+                [ print lexling ]
+                carolina.lex.print_lexling(lexling)()
+                dragon.print.new_line()()
+
+                [ jump back to loop start ]
+                dragon.jump.top(dragon.always, @loop.lex.characters)()
+            }
+
+            [ equals sign ]
+            dragon.integer.within_range(equals_sign, character, equals_sign)(in_range, out_of_range)
+            @equals_sign in_range = {
+                [ create lexling ]
+                dragon.pack(types:equals_sign, current_value, current_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
