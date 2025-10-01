@@ -57,6 +57,8 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
     dragon.set(dragon.hexadecimal.0A)(new_line)
     dragon.set(dragon.hexadecimal.7B)(left_curly_bracket)
     dragon.set(dragon.hexadecimal.7D)(right_curly_bracket)
+    dragon.set(dragon.hexadecimal.28)(left_parenthesis)
+    dragon.set(dragon.hexadecimal.29)(right_parenthesis)
     dragon.set(dragon.hexadecimal.5B)(left_square_bracket)
     dragon.set(dragon.hexadecimal.5D)(right_square_bracket)
     dragon.set(dragon.hexadecimal.22)(double_quote)
@@ -99,10 +101,6 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.current.within_range(current.character)(in_range, out_of_range)
             dragon.jump.bottom(out_of_range, @loop.lex.characters)()
 
-            [ DEBUG ]
-            dragon.set("Getting Next Character.%0a;")(message)
-            dragon.print.buffer_as_string(message)()
-
             [ setup value buffer ]
             dragon.pack(current.character:progress, current.character:progress)(current_value !dragon.buffer)
 
@@ -134,6 +132,7 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             [ TODO ]
 
             [ if is single character lexling ]
+            [ left curly bracket ]
             dragon.integer.within_range(left_curly_bracket, character, left_curly_bracket)(in_range, out_of_range)
             @left_curly_bracket in_range = {
                 [ create lexling ]
@@ -145,6 +144,61 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
 
                 [ print lexling ]
                 carolina.lex.print_lexling(lexling)()
+                dragon.print.new_line()()
+
+                [ jump back to loop start ]
+                dragon.jump.top(dragon.always, @loop.lex.characters)()
+            }
+
+            [ right curly bracket ]
+            dragon.integer.within_range(right_curly_bracket, character, right_curly_bracket)(in_range, out_of_range)
+            @right_curly_bracket in_range = {
+                [ create lexling ]
+                dragon.pack(types:right_curly_bracket, current_value, current_location)(lexling !carolina.lexling)
+
+                [ next character ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
+
+                [ print lexling ]
+                carolina.lex.print_lexling(lexling)()
+                dragon.print.new_line()()
+
+                [ jump back to loop start ]
+                dragon.jump.top(dragon.always, @loop.lex.characters)()
+            }
+
+            [ left parenthesis ]
+            dragon.integer.within_range(left_parenthesis, character, left_parenthesis)(in_range, out_of_range)
+            @left_parenthesis in_range = {
+                [ create lexling ]
+                dragon.pack(types:left_parenthesis, current_value, current_location)(lexling !carolina.lexling)
+
+                [ next character ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
+
+                [ print lexling ]
+                carolina.lex.print_lexling(lexling)()
+                dragon.print.new_line()()
+
+                [ jump back to loop start ]
+                dragon.jump.top(dragon.always, @loop.lex.characters)()
+            }
+
+            [ right parenthesis ]
+            dragon.integer.within_range(right_parenthesis, character, right_parenthesis)(in_range, out_of_range)
+            @right_parenthesis in_range = {
+                [ create lexling ]
+                dragon.pack(types:right_parenthesis, current_value, current_location)(lexling !carolina.lexling)
+
+                [ next character ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
+
+                [ print lexling ]
+                carolina.lex.print_lexling(lexling)()
+                dragon.print.new_line()()
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
