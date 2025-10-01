@@ -115,8 +115,6 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             [ determine type ]
             [ check for whitespace ]
             dragon.integer.within_range(whitespace:start, character, whitespace:end)(in_range, out_of_range)
-            
-            [ if whitespace, skip character ]
             @is_whitespace in_range = {
                 [ check for newline ]
                 dragon.integer.within_range(new_line, character, new_line)(in_range, out_of_range)
@@ -134,7 +132,83 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             }
 
             [ if is comment ]
-            [ TODO ]
+            dragon.integer.within_range(left_square_bracket, character, left_square_bracket)(in_range, out_of_range)
+            @comment in_range = {
+                [ setup comment index ]
+                dragon.copy(dragon.constant.1)(comment_depth)
+
+                [ advance progress by one ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
+
+                [ traverse comment characters ]
+                @comment.traverse in_range = {
+                    [ check to see if is at end of comment ]
+                    dragon.integer.within_range(dragon.constant.0, comment_depth, dragon.constant.0)(in_range, out_of_range)
+                    dragon.jump.top(in_range, @loop.lex.characters)()
+
+                    [ check to see if is at end of file ]
+                    dragon.current.within_range(current.character)(in_range, out_of_range)
+                    @comment.traverse.no_more_characters out_of_range = {
+                        [ error, while searching for the end of a comment the file ended unexpectedly ]
+                        dragon.set("Lexing Error: While searching for the end of a comment, the file ended unexpectedly.")(temp.error_message)
+                        carolina.error.generate(temp.error_message, current_location)(error)
+
+                        [ exit loop ]
+                        dragon.jump.bottom(dragon.always, @loop.lex.buffers)()
+                    }
+
+                    [ get character ]
+                    dragon.address_to_cell(current.character:progress, dragon.ascii_character.byte_size)(character, advancement)
+
+                    [ check character for depth change ]
+                    dragon.integer.within_range(left_square_bracket, character, left_square_bracket)(in_range, out_of_range)
+                    @comment.traverse.increase_depth in_range = {
+                        [ increase depth ]
+                        dragon.integer.add(comment_depth, dragon.constant.1)(comment_depth)
+
+                        [ advance ]
+                        dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                        dragon.copy(advancement)(current.character:progress)
+
+                        [ jump back to loop start ]
+                        dragon.jump.top(dragon.always, @comment.traverse)()
+                    }
+                    dragon.integer.within_range(right_square_bracket, character, right_square_bracket)(in_range, out_of_range)
+                    @comment.traverse.decrease_depth in_range = {
+                        [ decrease depth ]
+                        dragon.integer.subtract(comment_depth, dragon.constant.1)(comment_depth)
+
+                        [ advance ]
+                        dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                        dragon.copy(advancement)(current.character:progress)
+
+                        [ jump back to loop start ]
+                        dragon.jump.top(dragon.always, @comment.traverse)()
+                    }
+
+                    [ check for newline ]
+                    dragon.integer.within_range(new_line, character, new_line)(in_range, out_of_range)
+                    @comment.traverse.new_line_detected in_range = {
+                        [ increment line ]
+                        dragon.integer.add(current_location:line_number, dragon.constant.1)(current_location:line_number)
+                    }
+
+                    [ advance ]
+                    dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                    dragon.copy(advancement)(current.character:progress)
+
+                    [ jump to loop top ]
+                    dragon.jump.top(dragon.always, @comment.traverse)()
+                }
+
+                [ next character ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
+
+                [ jump back to loop start ]
+                dragon.jump.top(dragon.always, @loop.lex.characters)()
+            }
 
             [ if is single character lexling ]
             [ left curly bracket ]
