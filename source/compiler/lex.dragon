@@ -68,10 +68,6 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
     [ setup other data ]
     dragon.structure.byte_size(buffers)(buffer.byte_size)
 
-    [ DEBUG ]
-    dragon.set("Lexing!%0a;")(message)
-    dragon.print.buffer_as_string(message)()
-
     [ open lexlings ]
     carolina.lexlings.open()(lexlings)
 
@@ -89,7 +85,8 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
 
         [ get character current from buffer ]
         dragon.buffer.calculate.end_address(current.buffers:progress, buffer.byte_size)(current.buffer.end)
-        dragon.pack(current.buffers:progress, current.buffer.end)(character_buffer !dragon.buffer)
+        dragon.pack(current.buffers:progress, current.buffer.end)(buffers_slice !dragon.buffer)
+        dragon.buffer_to_structure(buffers_slice)(character_buffer !dragon.buffer)
         dragon.pack(character_buffer, character_buffer:start)(current.character !dragon.current)
 
         [ setup location information ]
@@ -142,6 +139,10 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
                 [ create lexling ]
                 dragon.pack(types:left_curly_bracket, current_value, current_location)(lexling !carolina.lexling)
 
+                [ next character ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
+
                 [ print lexling ]
                 carolina.lex.print_lexling(lexling)()
 
@@ -149,9 +150,12 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
             }
 
-            [ error ]
+            [ error, no lexling was matched ]
             dragon.set("Lexing Error: No valid lexling was matched.")(temp.error_message)
             carolina.error.generate(temp.error_message, current_location)(error)
+
+            [ exit loop ]
+            dragon.jump.bottom(dragon.always, @loop.lex.buffers)()
         }
 
         [ next buffer ]
@@ -205,13 +209,16 @@ carolina.lex.print_lexling(lexling !carolina.lexling)() = {
     [ setup common strings ]
     dragon.set("{ ")(header)
     dragon.set(", ")(separator)
+    dragon.set("%22;")(quote)
     dragon.set(" }")(footer)
 
     [ print lexling ]
     dragon.print.buffer_as_string(header)()
     dragon.print.integer.unsigned(lexling:type)()
     dragon.print.buffer_as_string(separator)()
+    dragon.print.buffer_as_string(quote)()
     dragon.print.buffer_as_string(lexling:value)()
+    dragon.print.buffer_as_string(quote)()
     dragon.print.buffer_as_string(separator)()
     dragon.print.buffer_as_string(header)()
     dragon.print.integer.unsigned(lexling:location:file_index)()
