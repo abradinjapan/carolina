@@ -17,6 +17,9 @@ carolina.compile(json_file_path !dragon.buffer)() = {
 
     [ lex files ]
     carolina.lex(files)(lexlings, error)
+
+    [ print error if occured ]
+    dragon.error.print_if_occured(error)()
 }
 
 [ get files ]
