@@ -1,6 +1,6 @@
 [ lexlings ]
 !carolina.lexlings(
-    list !dragon.list
+    list !dragon.list [ !carolina.lexling ]
 )
 
 [ open lexlings ]
@@ -106,6 +106,9 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
 
             [ setup value buffer ]
             dragon.pack(current.character:progress, current.character:progress)(current_value !dragon.buffer)
+
+            [ setup starting location ]
+            dragon.copy(current_location)(starting_location)
 
             [ get character ]
             dragon.address_to_cell(current.character:progress, dragon.ascii_character.byte_size)(character, advancement)
@@ -223,6 +226,13 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
                     [ get character ]
                     dragon.address_to_cell(current.character:progress, dragon.ascii_character.byte_size)(character, advancement)
 
+                    [ check for newline ]
+                    dragon.integer.within_range(new_line, character, new_line)(in_range, out_of_range)
+                    @name.new_line_detected in_range = {
+                        [ increment line ]
+                        dragon.integer.add(current_location:line_number, dragon.constant.1)(current_location:line_number)
+                    }
+
                     [ check for name character ]
                     carolina.lex.check.name_character(character)(in_range, out_of_range)
                     dragon.jump.top(out_of_range, @name.no_more_characters)()
@@ -240,11 +250,10 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
                     [ create lexling ]
                     dragon.integer.subtract(current.character:progress, dragon.constant.1)(name.end)
                     dragon.pack(name.start, name.end)(current_value !dragon.buffer)
-                    dragon.pack(types:name, current_value, current_location)(lexling !carolina.lexling)
+                    dragon.pack(types:name, current_value, starting_location)(lexling !carolina.lexling)
 
-                    [ print lexling ]
-                    carolina.lex.print_lexling(lexling)()
-                    dragon.print.new_line()()
+                    [ append lexling ]
+                    carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
                     
                     [ jump to bottom of loop ]
                     dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -277,20 +286,26 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
                     [ get character ]
                     dragon.address_to_cell(current.character:progress, dragon.ascii_character.byte_size)(character, advancement)
 
+                    [ check for newline ]
+                    dragon.integer.within_range(new_line, character, new_line)(in_range, out_of_range)
+                    @string.new_line_detected in_range = {
+                        [ increment line ]
+                        dragon.integer.add(current_location:line_number, dragon.constant.1)(current_location:line_number)
+                    }
+
                     [ check for double quote character ]
                     dragon.integer.within_range(double_quote, character, double_quote)(in_range, out_of_range)
                     @string.finished in_range = {
                         [ create lexling ]
                         dragon.pack(string.start, current.character:progress)(current_value !dragon.buffer)
-                        dragon.pack(types:string, current_value, current_location)(lexling !carolina.lexling)
+                        dragon.pack(types:string, current_value, starting_location)(lexling !carolina.lexling)
 
                         [ next character ]
                         dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                         dragon.copy(advancement)(current.character:progress)
 
-                        [ print lexling ]
-                        carolina.lex.print_lexling(lexling)()
-                        dragon.print.new_line()()
+                        [ append lexling ]
+                        carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
                         
                         [ jump back to loop start ]
                         dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -310,15 +325,14 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.integer.within_range(left_curly_bracket, character, left_curly_bracket)(in_range, out_of_range)
             @left_curly_bracket in_range = {
                 [ create lexling ]
-                dragon.pack(types:left_curly_bracket, current_value, current_location)(lexling !carolina.lexling)
+                dragon.pack(types:left_curly_bracket, current_value, starting_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                 dragon.copy(advancement)(current.character:progress)
 
-                [ print lexling ]
-                carolina.lex.print_lexling(lexling)()
-                dragon.print.new_line()()
+                [ append lexling ]
+                carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -328,15 +342,14 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.integer.within_range(right_curly_bracket, character, right_curly_bracket)(in_range, out_of_range)
             @right_curly_bracket in_range = {
                 [ create lexling ]
-                dragon.pack(types:right_curly_bracket, current_value, current_location)(lexling !carolina.lexling)
+                dragon.pack(types:right_curly_bracket, current_value, starting_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                 dragon.copy(advancement)(current.character:progress)
 
-                [ print lexling ]
-                carolina.lex.print_lexling(lexling)()
-                dragon.print.new_line()()
+                [ append lexling ]
+                carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -346,15 +359,14 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.integer.within_range(left_parenthesis, character, left_parenthesis)(in_range, out_of_range)
             @left_parenthesis in_range = {
                 [ create lexling ]
-                dragon.pack(types:left_parenthesis, current_value, current_location)(lexling !carolina.lexling)
+                dragon.pack(types:left_parenthesis, current_value, starting_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                 dragon.copy(advancement)(current.character:progress)
 
-                [ print lexling ]
-                carolina.lex.print_lexling(lexling)()
-                dragon.print.new_line()()
+                [ append lexling ]
+                carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -364,15 +376,14 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.integer.within_range(right_parenthesis, character, right_parenthesis)(in_range, out_of_range)
             @right_parenthesis in_range = {
                 [ create lexling ]
-                dragon.pack(types:right_parenthesis, current_value, current_location)(lexling !carolina.lexling)
+                dragon.pack(types:right_parenthesis, current_value, starting_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                 dragon.copy(advancement)(current.character:progress)
 
-                [ print lexling ]
-                carolina.lex.print_lexling(lexling)()
-                dragon.print.new_line()()
+                [ append lexling ]
+                carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -382,15 +393,14 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.integer.within_range(colon, character, colon)(in_range, out_of_range)
             @colon in_range = {
                 [ create lexling ]
-                dragon.pack(types:colon, current_value, current_location)(lexling !carolina.lexling)
+                dragon.pack(types:colon, current_value, starting_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                 dragon.copy(advancement)(current.character:progress)
 
-                [ print lexling ]
-                carolina.lex.print_lexling(lexling)()
-                dragon.print.new_line()()
+                [ append lexling ]
+                carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -400,15 +410,14 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.integer.within_range(equals_sign, character, equals_sign)(in_range, out_of_range)
             @equals_sign in_range = {
                 [ create lexling ]
-                dragon.pack(types:equals_sign, current_value, current_location)(lexling !carolina.lexling)
+                dragon.pack(types:equals_sign, current_value, starting_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                 dragon.copy(advancement)(current.character:progress)
 
-                [ print lexling ]
-                carolina.lex.print_lexling(lexling)()
-                dragon.print.new_line()()
+                [ append lexling ]
+                carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -418,15 +427,14 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.integer.within_range(exclamation_point, character, exclamation_point)(in_range, out_of_range)
             @exclamation_point in_range = {
                 [ create lexling ]
-                dragon.pack(types:exclamation_point, current_value, current_location)(lexling !carolina.lexling)
+                dragon.pack(types:exclamation_point, current_value, starting_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                 dragon.copy(advancement)(current.character:progress)
 
-                [ print lexling ]
-                carolina.lex.print_lexling(lexling)()
-                dragon.print.new_line()()
+                [ append lexling ]
+                carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -436,15 +444,14 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.integer.within_range(at, character, at)(in_range, out_of_range)
             @at in_range = {
                 [ create lexling ]
-                dragon.pack(types:at, current_value, current_location)(lexling !carolina.lexling)
+                dragon.pack(types:at, current_value, starting_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                 dragon.copy(advancement)(current.character:progress)
 
-                [ print lexling ]
-                carolina.lex.print_lexling(lexling)()
-                dragon.print.new_line()()
+                [ append lexling ]
+                carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -454,15 +461,14 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.integer.within_range(comma, character, comma)(in_range, out_of_range)
             @comma in_range = {
                 [ create lexling ]
-                dragon.pack(types:comma, current_value, current_location)(lexling !carolina.lexling)
+                dragon.pack(types:comma, current_value, starting_location)(lexling !carolina.lexling)
 
                 [ next character ]
                 dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
                 dragon.copy(advancement)(current.character:progress)
 
-                [ print lexling ]
-                carolina.lex.print_lexling(lexling)()
-                dragon.print.new_line()()
+                [ append lexling ]
+                carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
@@ -476,12 +482,31 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
             dragon.jump.bottom(dragon.always, @loop.lex.buffers)()
         }
 
+        [ append eof lexling ]
+        dragon.set("[end_of_file]")(value)
+        dragon.pack(types:end_of_file, value, current_location)(lexling !carolina.lexling)
+        carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
+
         [ next buffer ]
         dragon.integer.add(current.buffers:progress, buffer.byte_size)(current.buffers:progress)
+        dragon.integer.add(current_location:file_index, dragon.constant.1)(current_location:file_index)
 
         [ jump back to top for next buffer ]
         dragon.jump.top(dragon.always, @loop.lex.buffers)()
     }
+
+    [ append eofs lexling ]
+    dragon.set("[end_of_files]")(value)
+    dragon.pack(types:end_of_files, value, current_location)(lexling !carolina.lexling)
+    carolina.list.append.lexling(lexlings:list, lexling)(lexlings:list)
+}
+
+[ append lexling ]
+carolina.list.append.lexling(list !dragon.list, data !carolina.lexling)(list !dragon.list) = {
+    [ append members ]
+    dragon.list.append.cell(list, data:type)(list)
+    dragon.list.append.buffer(list, data:value)(list)
+    dragon.list.append.text.location(list, data:location)(list)
 }
 
 [ check for name character ]
@@ -544,6 +569,50 @@ carolina.error.generate(message !dragon.buffer, character.location !dragon.text.
     dragon.buffer.return(string.file_index)()
     dragon.buffer.return(string.line_number)()
     dragon.buffer.return(string.character_index)()
+}
+
+[ print lexlings ]
+carolina.lex.print_lexlings(lexlings !carolina.lexlings)() = {
+    [ setup common strings ]
+    dragon.set("Lexlings:%0a;")(header)
+    dragon.set("----------%0a;")(footer)
+
+    [ setup common data ]
+    dragon.pack.null()(blank_lexling !carolina.lexling)
+    dragon.structure.byte_size(blank_lexling)(lexling.byte_size)
+
+    [ print lexlings ]
+    [ print header ]
+    dragon.print.buffer_as_string(header)()
+
+    [ get current ]
+    dragon.list.calculate.content_buffer(lexlings:list)(content_buffer)
+    dragon.pack(content_buffer, content_buffer:start)(current !dragon.current)
+
+    [ loop over lexlings ]
+    @loop dragon.always = {
+        [ check current ]
+        dragon.current.within_range(current)(in_range, out_of_range)
+        dragon.jump.bottom(out_of_range, @loop)()
+
+        [ get lexling ]
+        dragon.buffer.calculate.end_address(current:progress, lexling.byte_size)(lexling.end)
+        dragon.pack(current:progress, lexling.end)(structure_buffer !dragon.buffer)
+        dragon.buffer_to_structure(structure_buffer)(lexling !carolina.lexling)
+
+        [ print lexling ]
+        carolina.lex.print_lexling(lexling)()
+        dragon.print.new_line()()
+
+        [ next lexling ]
+        dragon.integer.add(current:progress, lexling.byte_size)(current:progress)
+
+        [ jump to loop start ]
+        dragon.jump.top(dragon.always, @loop)()
+    }
+
+    [ print footer ]
+    dragon.print.buffer_as_string(footer)()
 }
 
 [ print a lexling ]
