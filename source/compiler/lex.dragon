@@ -69,8 +69,6 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
     dragon.set(dragon.hexadecimal.3D)(equals_sign)
     dragon.set(dragon.hexadecimal.21)(exclamation_point)
     dragon.set(dragon.hexadecimal.40)(at)
-    dragon.set(dragon.hexadecimal.30)(decimal_digits.start)
-    dragon.set(dragon.hexadecimal.39)(decimal_digits.end)
 
     [ setup other data ]
     dragon.structure.byte_size(buffers)(buffer.byte_size)
@@ -208,6 +206,49 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
 
                 [ jump back to loop start ]
                 dragon.jump.top(dragon.always, @loop.lex.characters)()
+            }
+
+            [ if is name ]
+            carolina.lex.check.name_character(character)(in_range, out_of_range)
+            @name in_range = {
+                [ save starting character ]
+                dragon.copy(current.character:progress)(name.start)
+
+                [ loop over characters ]
+                @name.loop dragon.always = {
+                    [ check for end of file ]
+                    dragon.current.within_range(current.character)(in_range, out_of_range)
+                    dragon.jump.top(out_of_range, @name.no_more_characters)()
+
+                    [ get character ]
+                    dragon.address_to_cell(current.character:progress, dragon.ascii_character.byte_size)(character, advancement)
+
+                    [ check for name character ]
+                    carolina.lex.check.name_character(character)(in_range, out_of_range)
+                    dragon.jump.top(out_of_range, @name.no_more_characters)()
+
+                    [ next character ]
+                    dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                    dragon.copy(advancement)(current.character:progress)
+
+                    [ jump to loop start ]
+                    dragon.jump.top(dragon.always, @name.loop)()
+                }
+
+                [ setup lexling ]
+                @name.no_more_characters dragon.always = {
+                    [ create lexling ]
+                    dragon.integer.subtract(current.character:progress, dragon.constant.1)(name.end)
+                    dragon.pack(name.start, name.end)(current_value !dragon.buffer)
+                    dragon.pack(types:name, current_value, current_location)(lexling !carolina.lexling)
+
+                    [ print lexling ]
+                    carolina.lex.print_lexling(lexling)()
+                    dragon.print.new_line()()
+                    
+                    [ jump to bottom of loop ]
+                    dragon.jump.top(dragon.always, @loop.lex.characters)()
+                }
             }
 
             [ if is single character lexling ]
@@ -387,6 +428,30 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
         [ jump back to top for next buffer ]
         dragon.jump.top(dragon.always, @loop.lex.buffers)()
     }
+}
+
+[ check for name character ]
+carolina.lex.check.name_character(character !dragon.cell)(valid !dragon.cell, invalid !dragon.cell) = {
+    [ setup character ranges ]
+    dragon.set(dragon.hexadecimal.61)(lowercase.start)
+    dragon.set(dragon.hexadecimal.7A)(lowercase.end)
+    dragon.set(dragon.hexadecimal.41)(uppercase.start)
+    dragon.set(dragon.hexadecimal.5A)(uppercase.end)
+    dragon.set(dragon.hexadecimal.30)(decimal_digits.start)
+    dragon.set(dragon.hexadecimal.39)(decimal_digits.end)
+    dragon.set(dragon.hexadecimal.5F)(underscore)
+    dragon.set(dragon.hexadecimal.2E)(period)
+
+    [ perform checks ]
+    dragon.integer.within_range(lowercase.start, character, lowercase.end)(valid, invalid)
+    dragon.jump.bottom(valid, @dragon.master_scope)()
+    dragon.integer.within_range(uppercase.start, character, uppercase.end)(valid, invalid)
+    dragon.jump.bottom(valid, @dragon.master_scope)()
+    dragon.integer.within_range(decimal_digits.start, character, decimal_digits.end)(valid, invalid)
+    dragon.jump.bottom(valid, @dragon.master_scope)()
+    dragon.integer.within_range(underscore, character, underscore)(valid, invalid)
+    dragon.jump.bottom(valid, @dragon.master_scope)()
+    dragon.integer.within_range(period, character, period)(valid, invalid)
 }
 
 [ generate error ]
