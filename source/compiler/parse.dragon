@@ -1,0 +1,83 @@
+[
+    Parsing
+]
+
+[
+    Types
+]
+
+[ parsling program - all parsable language features ]
+!carolina.parsling.program(
+    structures !dragon.list #carolina.parsling.structure,
+    aliases !dragon.list #carolina.parsling.alias,
+    functions !dragon.list #carolina.parsling.function
+)
+
+[ parsling structure - a structure ]
+!carolina.parsling.structure(
+    names !dragon.list #carolina.lexling,
+    members !dragon.list #carolina.parsling.member
+)
+
+[ parsling alias - a new name given to a structure (does not include functions) ]
+!carolina.parsling.alias(
+    old_name !carolina.lexling,
+    new_name !carolina.lexling
+)
+
+[ parsling function - a function ]
+!carolina.parsling.function(
+    name !carolina.lexling,
+    inputs !dragon.list #carolina.parsling.function.argument,
+    outputs !dragon.list #carolina.parsling.function.argument,
+    scope !carolina.parsling.scope
+)
+
+[ parsling function header arguments ]
+!carolina.parsling.function.argument(
+    name !carolina.lexling,
+    type !carolina.lexling [ optional ]
+)
+
+[ parsling scope ]
+!carolina.parsling.scope(
+    name !carolina.lexling,
+    condition !carolina.parsling.statement.argument,
+    statements !dragon.list #carolina.parsling.statement
+)
+
+[ parsling statement ]
+!carolina.parsling.statement(
+    [ type ]
+    type !dragon.cell #carolina.parsling.statement.type,
+
+    [ value ]
+    call !carolina.parsling.statement.call,
+    offset !carolina.parsling.statement.offset,
+    scope !carolina.parsling.scope
+)
+
+[ parsling function call ]
+!carolina.parsling.statement.call(
+    name !carolina.lexling,
+    inputs !dragon.list #carolina.parsling.statement.argument,
+    outputs !dragon.list #carolina.parsling.statement.argument
+)
+
+[ parsling function header arguments (at least one of either name or type must be present) ]
+!carolina.parsling.statement.argument(
+    name !carolina.lexling, [ optional ] [ could also be a string as well as a name ]
+    type !carolina.lexling [ optional ]
+)
+
+[ parsling offset ]
+!carolina.parsling.statement.offset(
+    name !carolina.lexling
+)
+
+[ statement types ]
+!carolina.parsling.statement.types(
+    call !dragon.cell,
+    offset !dragon.cell,
+    scope !dragon.cell
+)

@@ -1,6 +1,5 @@
 {
     "file_paths": [
-        "./tests/basic_test/lex_test.carolina",
         "./tests/basic_test/hello_world.carolina"
     ]
 }
