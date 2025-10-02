@@ -251,6 +251,60 @@ carolina.lex(buffers !dragon.buffer)(lexlings !carolina.lexlings, error !dragon.
                 }
             }
 
+            [ if is string ]
+            dragon.integer.within_range(double_quote, character, double_quote)(in_range, out_of_range)
+            @string in_range = {
+                [ setup starting address ]
+                dragon.copy(current.character:progress)(string.start)
+
+                [ next character ]
+                dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                dragon.copy(advancement)(current.character:progress)
+
+                [ loop over characters to find end quote ]
+                @string.loop dragon.always = {
+                    [ check for end of file ]
+                    dragon.current.within_range(current.character)(in_range, out_of_range)
+                    @string.ran_out_of_characters out_of_range = {
+                        [ error, while searching for the end of a string the file ended unexpectedly ]
+                        dragon.set("Lexing Error: While searching for the end of a string, the file ended unexpectedly.")(temp.error_message)
+                        carolina.error.generate(temp.error_message, current_location)(error)
+
+                        [ exit loop ]
+                        dragon.jump.bottom(dragon.always, @loop.lex.buffers)()
+                    }
+
+                    [ get character ]
+                    dragon.address_to_cell(current.character:progress, dragon.ascii_character.byte_size)(character, advancement)
+
+                    [ check for double quote character ]
+                    dragon.integer.within_range(double_quote, character, double_quote)(in_range, out_of_range)
+                    @string.finished in_range = {
+                        [ create lexling ]
+                        dragon.pack(string.start, current.character:progress)(current_value !dragon.buffer)
+                        dragon.pack(types:string, current_value, current_location)(lexling !carolina.lexling)
+
+                        [ next character ]
+                        dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                        dragon.copy(advancement)(current.character:progress)
+
+                        [ print lexling ]
+                        carolina.lex.print_lexling(lexling)()
+                        dragon.print.new_line()()
+                        
+                        [ jump back to loop start ]
+                        dragon.jump.top(dragon.always, @loop.lex.characters)()
+                    }
+
+                    [ next character ]
+                    dragon.integer.add(current_location:character_index, dragon.ascii_character.byte_size)(current_location:character_index)
+                    dragon.copy(advancement)(current.character:progress)
+
+                    [ jump to loop start ]
+                    dragon.jump.top(dragon.always, @string.loop)()
+                }
+            }
+
             [ if is single character lexling ]
             [ left curly bracket ]
             dragon.integer.within_range(left_curly_bracket, character, left_curly_bracket)(in_range, out_of_range)
