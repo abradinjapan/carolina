@@ -15,7 +15,7 @@
 
 [ parsling structure - a structure ]
 !carolina.parsling.structure(
-    names !dragon.list #carolina.lexling,
+    name !carolina.lexling,
     members !dragon.list #carolina.parsling.member
 )
 
@@ -64,10 +64,20 @@
     outputs !dragon.list #carolina.parsling.statement.argument
 )
 
-[ parsling function header arguments (at least one of either name or type must be present) ]
+[ parsling function header arguments (at least one of either name, type or string must be present) ]
 !carolina.parsling.statement.argument(
-    name !carolina.lexling, [ optional ] [ could also be a string as well as a name ]
-    type !carolina.lexling [ optional ]
+    [ the type of argument ]
+    argument_type !dragon.cell,
+
+    [ the argument itself ]
+    namespace !carolina.parsling.statement.namespace [ optional ],
+    string !carolina.lexling, [ optional ]
+    structure_type !carolina.lexling [ optional ]
+)
+
+[ a name / member searcher ]
+!carolina.parsling.statement.namespace(
+    names !dragon.list #carolina.lexling
 )
 
 [ parsling offset ]
@@ -81,3 +91,115 @@
     offset !dragon.cell,
     scope !dragon.cell
 )
+
+[ argument types ]
+!carolina.parsling.statement.arguments.types(
+    namespace !dragon.cell,
+    string !dragon.cell,
+    structure_type !dragon.cell
+)
+
+[
+    Parsing
+]
+
+[ parse program ]
+carolina.parse.program(lexlings !carolina.lexlings)(output !carolina.parsling.program, error !dragon.error) = {
+    [ setup constants ]
+    dragon.pack.null()(blank_text_location !dragon.text.location)
+    dragon.pack.increment(dragon.constant.0, dragon.constant.1)(lexling_types !carolina.lexling.types)
+
+    [ open program ]
+    carolina.open.parsling.program()(output)
+
+    [ setup current ]
+    dragon.list.calculate.content_buffer(lexlings:list)(lexlings.buffer)
+    dragon.pack(lexlings.buffer, lexlings.buffer:start)(current_lexling !dragon.current)
+
+    [ setup search loop ]
+    @search dragon.always = {
+        [ check for remaining lexlings ]
+        dragon.current.within_range(current_lexling)(in_range, out_of_range)
+        @search.error.ran_out_of_lexlings out_of_range = {
+            [ raise error ]
+            dragon.set("Parsing Error: Ran out of lexlings to parse with.")(error_message)
+            carolina.error.generate(error_message, blank_text_location)(error)
+
+            [ exit parsing ]
+            [ todo ]
+        }
+
+        [ check for exclamation point ]
+        @search.type dragon.never = {
+            [ get name ]
+            [ todo ]
+
+            [ check for equals sign ]
+            [ todo ]
+
+            [ check for exclamation, thus is an alias ]
+            @search.type.alias dragon.never = {
+
+            }
+
+            [ check for parenthesis, thus is structure ]
+            @search.type.structure dragon.never = {
+
+            }
+
+            [ otherwise, syntax error ]
+        }
+
+        [ check for name ]
+        @search.name dragon.never = {
+            [ must be a function, get name ]
+            [ todo ]
+
+            [ get input arguments ]
+            [ todo ]
+
+            [ get output arguments ]
+            [ todo ]
+
+            [ check for equals sign ]
+            [ todo ]
+
+            [ parse scope ]
+            [ todo ]
+        }
+
+        [ check for eof ]
+
+        [ check for eofs ]
+
+        [ nothing matched, syntax error ]
+    }
+}
+
+[ check lexling type ]
+carolina.check.lexling.type(lexling !carolina.lexling, expected_type !dragon.cell)(valid !dragon.cell, invalid !dragon.cell) = {
+    [ check type ]
+    dragon.integer.within_range(expected_type, lexling:type, expected_type)(valid, invalid)
+}
+
+[ open parsling program ]
+carolina.open.parsling.program()(program !carolina.parsling.program) = {
+    [ setup baked data ]
+    dragon.set(dragon.integer.2048)(multiplier)
+    dragon.pack.null()(structure !carolina.parsling.structure)
+    dragon.pack.null()(alias !carolina.parsling.alias)
+    dragon.pack.null()(function !carolina.parsling.function)
+
+    [ calculate increases ]
+    dragon.structure.byte_size(structure)(structure.byte_size)
+    dragon.structure.byte_size(alias)(alias.byte_size)
+    dragon.structure.byte_size(function)(function.byte_size)
+    dragon.integer.multiply(structure.byte_size, multiplier)(structure.increase)
+    dragon.integer.multiply(alias.byte_size, multiplier)(alias.increase)
+    dragon.integer.multiply(function.byte_size, multiplier)(function.increase)
+
+    [ open lists ]
+    dragon.list.open(structure.increase)(program:structures)
+    dragon.list.open(alias.increase)(program:aliases)
+    dragon.list.open(function.increase)(program:functions)
+}

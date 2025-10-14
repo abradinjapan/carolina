@@ -1,0 +1,22 @@
+[ aliases ]
+!basic.string = !carolina.buffer
+
+[ structures ]
+!basic.structure = (
+    string !basic.string,
+    cell !carolina.cell
+)
+
+[ functions ]
+carolina.main()() = {
+    [ hello world ]
+    carolina.print.buffer_as_string("Made in North Carolina!%0a;")()
+
+    [ test offset ]
+    @offset
+
+    [ test scope ]
+    @scope carolina.always = {
+        carolina.print.buffer_as_string("WOO!%0a;")()
+    }
+}
