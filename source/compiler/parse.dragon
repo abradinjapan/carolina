@@ -64,7 +64,7 @@
     outputs !dragon.list #carolina.parsling.statement.argument
 )
 
-[ parsling function header arguments (at least one of either name, type or string must be present) ]
+[ parsling statement arguments (at least one of either name, type or string must be present) ]
 !carolina.parsling.statement.argument(
     [ the type of argument ]
     argument_type !dragon.cell,
@@ -72,7 +72,8 @@
     [ the argument itself ]
     namespace !carolina.parsling.statement.namespace [ optional ],
     string !carolina.lexling, [ optional ]
-    structure_type !carolina.lexling [ optional ]
+    structure_type !carolina.lexling, [ optional ]
+    offset !carolina.parsling.statement.offset [ optional ]
 )
 
 [ a name / member searcher ]
@@ -82,7 +83,8 @@
 
 [ parsling offset ]
 !carolina.parsling.statement.offset(
-    name !carolina.lexling
+    name !carolina.lexling,
+    jump_extension !carolina.lexling
 )
 
 [ statement types ]
@@ -106,8 +108,14 @@
 [ parse program ]
 carolina.parse.program(lexlings !carolina.lexlings)(output !carolina.parsling.program, error !dragon.error) = {
     [ setup constants ]
-    dragon.pack.null()(blank_text_location !dragon.text.location)
     dragon.pack.increment(dragon.constant.0, dragon.constant.1)(lexling_types !carolina.lexling.types)
+    dragon.set("Parsing Error: No error occured. If you're seeing this, congrats! You found a bug!")(error_message.no_error)
+    dragon.set("Parsing Error: Ran out of lexlings to parse with.")(error_message.ran_out_of_lexlings)
+    dragon.set("Parsing Error: Expected name after exclamation point for a alias / structure definition.")(error_message.missing_structure_definition)
+    dragon.set("Parsing Error: Expected equals sign after name for a alias / structure definition.")(error_message.missing_structure_definition.expected_equals)
+
+    [ setup blank error ]
+    dragon.error.setup_blank()(error)
 
     [ open program ]
     carolina.open.parsling.program()(output)
@@ -119,30 +127,41 @@ carolina.parse.program(lexlings !carolina.lexlings)(output !carolina.parsling.pr
     [ setup search loop ]
     @search dragon.always = {
         [ check for remaining lexlings ]
-        dragon.current.within_range(current_lexling)(in_range, out_of_range)
-        @search.error.ran_out_of_lexlings out_of_range = {
-            [ raise error ]
-            dragon.set("Parsing Error: Ran out of lexlings to parse with.")(error_message)
-            carolina.error.generate(error_message, blank_text_location)(error)
-
-            [ exit parsing ]
-            [ todo ]
-        }
+        [ carolina.check_for_lexling.available(current, error_message.ran_out_of_lexlings, blank_text_location, error)(in_range, out_of_range, error)
+        dragon.jump.bottom(out_of_range, @dragon.master_scope)() ]
 
         [ check for exclamation point ]
-        @search.type dragon.never = {
-            [ get name ]
-            [ todo ]
+        carolina.check_for_lexling.by_type(current_lexling, lexling_types:exclamation_point, dragon.false, error_message.no_error, error)(current_lexling, lexling.ignored, found, not_found, error)
+        @search.type_or_alias found = {
+            [ get & check name ]
+            carolina.check_for_lexling.by_type(current_lexling, lexling_types:name, dragon.true, error_message.missing_structure_definition, error)(current_lexling, name, found, not_found, error)
+            dragon.jump.bottom(error:occured, @dragon.master_scope)()
 
             [ check for equals sign ]
-            [ todo ]
+            carolina.check_for_lexling.by_type(current_lexling, lexling_types:equals_sign, dragon.true, error_message.missing_structure_definition.expected_equals, error)(current_lexling, equals_sign, found, not_found, error)
+            dragon.jump.bottom(error:occured, @dragon.master_scope)()
 
             [ check for exclamation, thus is an alias ]
-            @search.type.alias dragon.never = {
+            carolina.check_for_lexling.by_type(current_lexling, lexling_types:exclamation_point, dragon.false, error_message.no_error, error)(current_lexling, lexling.ignored, found, not_found, error)
+            @search.is_alias found = {
+                [ get & check name ]
+                carolina.check_for_lexling.by_type(current_lexling, lexling_types:name, dragon.true, error_message.missing_structure_definition, error)(current_lexling, new_name, found, not_found, error)
+                dragon.jump.bottom(error:occured, @dragon.master_scope)()
 
+                [ pack alias ]
+                dragon.pack(name, new_name)(alias !carolina.parsling.alias)
+
+                [ append alias ]
+                carolina.list.append.parsling.alias(output, alias)(output)
+
+                [ DEBUG ]
+                carolina.lex.print_lexling(alias:old_name)()
+                dragon.print.new_line()()
+                carolina.lex.print_lexling(alias:new_name)()
+                dragon.print.new_line()()
             }
 
-            [ check for parenthesis, thus is structure ]
+            [ check for parenthesis, thus is a structure ]
             @search.type.structure dragon.never = {
 
             }
@@ -174,6 +193,67 @@ carolina.parse.program(lexlings !carolina.lexlings)(output !carolina.parsling.pr
 
         [ nothing matched, syntax error ]
     }
+
+    [ set an error from a potential error ]
+    @error.set dragon.always = {
+        
+    }
+}
+
+[ get and check for lexling ]
+carolina.check_for_lexling.by_type(current !dragon.current, expected_type !dragon.cell, raise_error_if_occured !dragon.cell, error_message !dragon.buffer, error !dragon.error)(current !dragon.current, lexling !carolina.lexling, found !dragon.cell, not_found !dragon.cell, error !dragon.error) = {
+    [ setup constants ]
+    dragon.pack.null()(blank_text_location !dragon.text.location)
+
+    [ check for no more lexlings ]
+    carolina.check_for_lexling.available(current, error_message, raise_error_if_occured, blank_text_location, error)(found, not_found, error)
+    dragon.jump.bottom(not_found, @dragon.master_scope)()
+
+    [ get lexling ]
+    carolina.current.get.lexling_from_current(current)(lexling)
+
+    [ check type ]
+    carolina.check.lexling.type(lexling, expected_type)(found, not_found)
+
+    [ advance current if found ]
+    @advance found = {
+        carolina.current.advance.lexling(current)(current)
+    }
+}
+
+[ check for remaining lexlings ]
+carolina.check_for_lexling.available(current !dragon.current, error_message !dragon.buffer, raise_error_if_occured !dragon.cell, location !dragon.text.location, error !dragon.error)(in_range !dragon.cell, out_of_range !dragon.cell, error !dragon.error) = {
+    [ check for valid range ]
+    dragon.current.within_range(current)(in_range, out_of_range)
+    @ran_out_of_lexlings out_of_range = {
+        @raise_error_if_occured raise_error_if_occured = {
+            [ generate error ]
+            carolina.error.generate(error_message, location)(error)
+        }
+    }
+}
+
+[ get lexling from current ]
+carolina.current.get.lexling_from_current(current !dragon.current)(lexling !carolina.lexling) = {
+    [ get byte size ]
+    dragon.structure.byte_size(lexling)(lexling_length)
+
+    [ calculate end address ]
+    dragon.buffer.calculate.end_address(current:progress, lexling_length)(end_address)
+    dragon.pack(current:progress, end_address)(lexling_buffer !dragon.buffer)
+
+    [ convert ]
+    dragon.buffer_to_structure(lexling_buffer)(lexling !carolina.lexling)
+}
+
+[ advance to next lexling ]
+carolina.current.advance.lexling(current !dragon.current)(current !dragon.current) = {
+    [ calculate byte size ]
+    dragon.pack.null()(lexling !carolina.lexling)
+    dragon.structure.byte_size(lexling)(lexling.byte_size)
+
+    [ advance current ]
+    dragon.integer.add(current:progress, lexling.byte_size)(current:progress)
 }
 
 [ check lexling type ]
@@ -202,4 +282,15 @@ carolina.open.parsling.program()(program !carolina.parsling.program) = {
     dragon.list.open(structure.increase)(program:structures)
     dragon.list.open(alias.increase)(program:aliases)
     dragon.list.open(function.increase)(program:functions)
+}
+
+[
+    Parsling Type List Functionality
+]
+
+[ append alias ]
+carolina.list.append.parsling.alias(program !carolina.parsling.program, alias !carolina.parsling.alias)(program !carolina.parsling.program) = {
+    [ append data ]
+    carolina.list.append.lexling(program:aliases, alias:old_name)(program:aliases)
+    carolina.list.append.lexling(program:aliases, alias:new_name)(program:aliases)
 }

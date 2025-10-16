@@ -21,6 +21,14 @@ carolina.compile(json_file_path !dragon.buffer)() = {
 
     [ print error if occured ]
     dragon.error.print_if_occured(error)()
+    dragon.jump.bottom(error:occured, @dragon.master_scope)()
+
+    [ parse files ]
+    carolina.parse.program(lexlings)(parslings, error)
+
+    [ if error occured ]
+    dragon.error.print_if_occured(error)()
+    dragon.jump.bottom(error:occured, @dragon.master_scope)()
 }
 
 [ get files ]
