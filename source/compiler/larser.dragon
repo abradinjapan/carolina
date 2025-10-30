@@ -131,6 +131,8 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
     [ setup constants ]
     dragon.pack.null()(dummy.buffer !dragon.buffer)
     dragon.structure.byte_size(dummy.buffer)(buffer.byte_size)
+    dragon.set(dragon.hexadecimal.28)(left_parenthesis)
+    dragon.set(dragon.hexadecimal.29)(right_parenthesis)
     dragon.set(dragon.hexadecimal.21)(exclamation_point)
     dragon.set(dragon.hexadecimal.3D)(equals_sign)
 
@@ -193,7 +195,7 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
                 dragon.jump.bottom(error:occured, @dragon.master_scope)()
 
                 [ get & check name ]
-                carolina.larse.name(workspace)(workspace, text, found, not_found)
+                carolina.larse.name(workspace)(workspace, data_definition_name, found, not_found)
                 @larse.one_file.search.data_definition.name not_found = {
                     [ error ]
                     dragon.set("Larsing Error: When searching for the name of an alias or a structure definition, the first name was not found.")(message)
@@ -206,7 +208,7 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
                 [ DEBUG ]
                 dragon.set("Found name: ")(message)
                 dragon.print.buffer_as_string(message)()
-                dragon.print.buffer_as_string(text)()
+                dragon.print.buffer_as_string(data_definition_name:value)()
                 dragon.print.new_line()()
 
                 [ skip whitespace ]
@@ -236,21 +238,66 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
                 dragon.set("Found equals sign!%0a;")(message)
                 dragon.print.buffer_as_string(message)()
 
+                [ skip whitespace ]
+                carolina.larse.skip_whitespace(workspace, error)(workspace, ran_out_of_characters, error)
+                dragon.jump.bottom(ran_out_of_characters, @larse.one_file)()
+                dragon.jump.bottom(error:occured, @dragon.master_scope)()
+
+                [ get character ]
+                dragon.address_to_cell(workspace:current_file:progress, dragon.ascii_character.byte_size)(character, advancement)
+
+                [ check for exclamation point ]
+                dragon.integer.within_range(exclamation_point, character, exclamation_point)(in_range, out_of_range)
+                @larse.one_file.search.data_content.alias_new_name in_range = {
+                    [ advance character & advance statistics past exclamation point ]
+                    dragon.copy(advancement)(workspace:current_file:progress)
+                    dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index)
+
+                    [ DEBUG ]
+                    dragon.set("Found exclamation point!%0a;")(message)
+                    dragon.print.buffer_as_string(message)()
+
+                    [ skip whitespace ]
+                    carolina.larse.skip_whitespace(workspace, error)(workspace, ran_out_of_characters, error)
+                    dragon.jump.bottom(ran_out_of_characters, @larse.one_file)()
+                    dragon.jump.bottom(error:occured, @dragon.master_scope)()
+
+                    [ get & check name ]
+                    carolina.larse.name(workspace)(workspace, data_definition_alias, found, not_found)
+                    @larse.one_file.search.data_definition.alias_new_name.not_found not_found = {
+                        [ error ]
+                        dragon.set("Larsing Error: When searching for the new name of an alias, the new name was not found.")(message)
+                        carolina.error.generate(message, workspace:current_text_location)(error)
+
+                        [ quit ]
+                        dragon.jump.bottom(error:occured, @dragon.master_scope)()
+                    }
+
+                    [ DEBUG ]
+                    dragon.set("Found name: ")(message)
+                    dragon.print.buffer_as_string(message)()
+                    dragon.print.buffer_as_string(data_definition_alias:value)()
+                    dragon.print.new_line()()
+
+                    [ found alias! ]
+                    dragon.pack(data_definition_name, data_definition_alias)(alias !carolina.larsling.alias)
+                    carolina.larse.print.alias(alias)()
+                    dragon.print.new_line()()
+                }
+
                 [ check for left parenthesis ]
-                @larse.one_file.search.structure_name dragon.never = {
+                dragon.integer.within_range(left_parenthesis, character, left_parenthesis)(in_range, out_of_range)
+                @larse.one_file.search.data_content.structure_name in_range = {
+                    [ larse structure ]
                     [ todo ]
+
+                    [ DEBUG ]
+                    dragon.set("Found structure definition's opening left parenthesis!%0a;")(message)
+                    dragon.print.buffer_as_string(message)()
+                    dragon.jump.bottom(dragon.always, @dragon.master_scope)()
                 }
 
-                [ check for name ]
-                @larse.one_file.search.alias_name dragon.never = {
-                    [ todo ]
-                }
-
-                [ DEBUG ]
-                [ dragon.print.character(character)()
-                dragon.copy(advancement)(workspace:current_file:progress)
-                dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index)
-                dragon.jump.top(dragon.always, @larse.one_file)() ]
+                [ error, invalid syntax ]
             }
 
             [ search for name character ]
@@ -275,7 +322,7 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
 }
 
 [ larse a name ]
-carolina.larse.name(workspace !carolina.larsing.workspace)(workspace !carolina.larsing.workspace, text !dragon.buffer, found !dragon.cell, not_found !dragon.cell) = {
+carolina.larse.name(workspace !carolina.larsing.workspace)(workspace !carolina.larsing.workspace, text !carolina.larsling.text, found !dragon.cell, not_found !dragon.cell) = {
     [ setup characters ]
     dragon.set(dragon.hexadecimal.61)(lowercase.start)
     dragon.set(dragon.hexadecimal.7A)(lowercase.end)
@@ -288,7 +335,8 @@ carolina.larse.name(workspace !carolina.larsing.workspace)(workspace !carolina.l
 
     [ setup text start ]
     dragon.integer.subtract(workspace:current_file:progress, dragon.constant.1)(progress.end)
-    dragon.pack(workspace:current_file:progress, progress.end)(text !dragon.buffer)
+    dragon.pack(workspace:current_file:progress, progress.end)(text:value !dragon.buffer)
+    dragon.copy(workspace:current_text_location)(text:location)
     dragon.copy(dragon.false)(found)
     dragon.copy(dragon.true)(not_found)
 
@@ -327,7 +375,7 @@ carolina.larse.name(workspace !carolina.larsing.workspace)(workspace !carolina.l
         dragon.copy(dragon.false)(not_found)
 
         [ advance text ]
-        dragon.integer.add(text:end, dragon.ascii_character.byte_size)(text:end)
+        dragon.integer.add(text:value:end, dragon.ascii_character.byte_size)(text:value:end)
 
         [ advance current ]
         dragon.integer.add(workspace:current_file:progress, dragon.ascii_character.byte_size)(workspace:current_file:progress)
@@ -457,4 +505,40 @@ carolina.open.larsling.program()(program !carolina.larsling.program) = {
     dragon.list.open(alias.increase)(program:aliases)
     dragon.list.open(structure.increase)(program:structures)
     dragon.list.open(function.increase)(program:functions)
+}
+
+[
+    Printing
+]
+
+[ print an alias ]
+carolina.larse.print.alias(alias !carolina.larsling.alias)() = {
+    dragon.set("Alias: ")(message)
+    dragon.print.buffer_as_string(message)()
+    carolina.larse.print.text(alias:old_name)()
+    carolina.larse.print.text(alias:new_name)()
+}
+
+[ print text ]
+carolina.larse.print.text(text !carolina.larsling.text)() = {
+    [ setup strings ]
+    dragon.set("[ ")(header)
+    dragon.set(", ")(separator)
+    dragon.set(" ]")(footer)
+    dragon.set("%22;")(double_quote)
+
+    [ print data ]
+    dragon.print.buffer_as_string(header)()
+    dragon.print.buffer_as_string(double_quote)()
+    dragon.print.buffer_as_string(text:value)()
+    dragon.print.buffer_as_string(double_quote)()
+    dragon.print.buffer_as_string(separator)()
+    dragon.print.buffer_as_string(header)()
+    dragon.print.integer.unsigned(text:location:file_index)()
+    dragon.print.buffer_as_string(separator)()
+    dragon.print.integer.unsigned(text:location:line_number)()
+    dragon.print.buffer_as_string(separator)()
+    dragon.print.integer.unsigned(text:location:character_index)()
+    dragon.print.buffer_as_string(footer)()
+    dragon.print.buffer_as_string(footer)()
 }
