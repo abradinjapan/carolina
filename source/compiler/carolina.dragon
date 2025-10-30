@@ -15,7 +15,7 @@ carolina.compile(json_file_path !dragon.buffer)() = {
     carolina.gather_carolina_files(json_file_path)(files, success, failure)
     dragon.jump.bottom(failure, @dragon.master_scope)()
 
-    [ lex files ]
+    [ [ lex files ]
     carolina.lex(files)(lexlings, error)
     carolina.lex.print_lexlings(lexlings)()
     dragon.error.print_if_occured(error)()
@@ -23,6 +23,11 @@ carolina.compile(json_file_path !dragon.buffer)() = {
 
     [ parse files ]
     carolina.parse.program(lexlings)(parslings, error)
+    dragon.error.print_if_occured(error)()
+    dragon.jump.bottom(error:occured, @dragon.master_scope)()]
+
+    [ larse files ]
+    carolina.larse(files)(output, error)
     dragon.error.print_if_occured(error)()
     dragon.jump.bottom(error:occured, @dragon.master_scope)()
 }

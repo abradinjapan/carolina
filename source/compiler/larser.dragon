@@ -1,0 +1,356 @@
+[
+    Larsing
+]
+
+[
+    Types
+]
+
+[ larsling program - all larsable language features ]
+!carolina.larsling.program(
+    aliases !dragon.list #carolina.larsling.alias,
+    structures !dragon.list #carolina.larsling.structure,
+    functions !dragon.list #carolina.larsling.function
+)
+
+[ larsling structure - a structure ]
+!carolina.larsling.structure(
+    name !carolina.larsling.text,
+    members !dragon.list #carolina.larsling.structure.argument
+)
+
+[ larsling alias - a new name given to a structure (does not include functions) ]
+!carolina.larsling.alias(
+    old_name !carolina.larsling.text,
+    new_name !carolina.larsling.text
+)
+
+[ larsling function - a function ]
+!carolina.larsling.function(
+    name !carolina.larsling.text,
+    inputs !dragon.list #carolina.larsling.function.argument,
+    outputs !dragon.list #carolina.larsling.function.argument,
+    scope !carolina.larsling.scope
+)
+
+[ larsling function header argument ]
+!carolina.larsling.function.argument(
+    name !carolina.larsling.text,
+    type !carolina.larsling.text [ optional ]
+)
+
+[ larsling structure member argument ]
+!carolina.larsling.structure.argument(
+    name !carolina.larsling.text,
+    type !carolina.larsling.text
+)
+
+[ larsling scope ]
+!carolina.larsling.scope(
+    name !carolina.larsling.text,
+    condition !carolina.larsling.statement.argument,
+    statements !dragon.list #carolina.larsling.statement
+)
+
+[ larsling statement ]
+!carolina.larsling.statement(
+    [ type ]
+    type !dragon.cell #carolina.larsling.statement.type,
+
+    [ value ]
+    call !carolina.larsling.statement.call,
+    offset !carolina.larsling.statement.offset,
+    scope !carolina.larsling.scope
+)
+
+[ larsling function call ]
+!carolina.larsling.statement.call(
+    name !carolina.larsling.text,
+    inputs !dragon.list #carolina.larsling.statement.argument,
+    outputs !dragon.list #carolina.larsling.statement.argument
+)
+
+[ larsling statement arguments (at least one of either name, type, offset or string must be present) ]
+!carolina.larsling.statement.argument(
+    [ the type of argument ]
+    argument_type !dragon.cell,
+
+    [ the argument itself ]
+    namespace !carolina.larsling.statement.namespace [ optional ],
+    string !carolina.larsling.text, [ optional ]
+    structure_type !carolina.larsling.text, [ optional ]
+    offset !carolina.larsling.statement.offset [ optional ]
+)
+
+[ a name / member searcher ]
+!carolina.larsling.statement.namespace(
+    names !dragon.list #carolina.larsling.text
+)
+
+[ larsling offset ]
+!carolina.larsling.statement.offset(
+    name !carolina.larsling.text,
+    jump_extension !carolina.larsling.text [ optional ]
+)
+
+[ text ]
+!carolina.larsling.text(
+    value !dragon.buffer,
+    location !dragon.text.location
+)
+
+[ statement types ]
+!carolina.larsling.statement.types(
+    call !dragon.cell,
+    offset !dragon.cell,
+    scope !dragon.cell
+)
+
+[ argument types ]
+!carolina.larsling.statement.arguments.types(
+    namespace !dragon.cell,
+    string !dragon.cell,
+    structure_type !dragon.cell
+)
+
+[
+    Larsing Workspace
+]
+!carolina.larsing.workspace(
+    current_files !dragon.current, [ multiple files ]
+    current_file !dragon.current, [ only one file ]
+    current_text_location !dragon.text.location
+)
+
+[
+    Larse
+]
+
+[ larse program ]
+carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, error !dragon.error) = {
+    [ setup constants ]
+    dragon.pack.null()(dummy.buffer !dragon.buffer)
+    dragon.structure.byte_size(dummy.buffer)(buffer.byte_size)
+    dragon.set(dragon.hexadecimal.21)(exclamation_point)
+
+    [ setup blank error ]
+    dragon.error.setup_blank()(error)
+
+    [ open program ]
+    carolina.open.larsling.program()(output)
+
+    [ setup workspace ]
+    dragon.pack.null()(workspace !carolina.larsing.workspace)
+    dragon.pack(user_code, user_code:start)(workspace:current_files !dragon.current)
+
+    [ loop over all files ]
+    @larse.all_files dragon.always = {
+        [ check for files ]
+        dragon.current.within_range(workspace:current_files)(in_range, out_of_range)
+        dragon.jump.bottom(out_of_range, @larse.all_files)()
+
+        [ get file ]
+        dragon.buffer.calculate.end_address(workspace:current_files:progress, buffer.byte_size)(current_files.end)
+        dragon.pack(workspace:current_files:progress, current_files.end)(current_files.as_buffer !dragon.buffer)
+        dragon.buffer_to_structure(current_files.as_buffer)(file !dragon.buffer)
+
+        [ setup current file ]
+        dragon.pack(file, file:start)(workspace:current_file !dragon.current)
+
+        [ check to see if file is empty ]
+        dragon.integer.within_range(file:start, file:start, file:end)(in_range, out_of_range)
+        dragon.jump.bottom(out_of_range, @larse.one_file)()
+
+        [ reset text location line number & character index ]
+        dragon.copy(dragon.constant.1)(workspace:current_text_location:line_number)
+        dragon.copy(dragon.constant.0)(workspace:current_text_location:character_index)
+
+        [ loop over file characters ]
+        @larse.one_file dragon.always = {
+            [ check for more characters ]
+            dragon.current.within_range(workspace:current_file)(in_range, out_of_range)
+            dragon.jump.bottom(out_of_range, @larse.one_file)()
+
+            [ skip whitespace ]
+            carolina.larse.skip_whitespace(workspace, error)(workspace, ran_out_of_characters, error)
+            dragon.jump.bottom(ran_out_of_characters, @larse.one_file)()
+            dragon.jump.bottom(error:occured, @dragon.master_scope)()
+
+            [ search for exclamation point ]
+            [ dragon.integer.within_range(exclamation_point, character, exclamation_point)(in_range, out_of_range) ]
+            [ @larse.one_file.search.exclamation_point in_range = { ]
+                [ advance character & advance statistics ]
+                [ dragon.copy(advancement)(workspace:current_file:progress)
+                dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index) ]
+
+                [ skip whitespace ]
+                carolina.larse.skip_whitespace(workspace, error)(workspace, ran_out_of_characters, error)
+                dragon.jump.bottom(ran_out_of_characters, @larse.one_file)()
+                dragon.jump.bottom(error:occured, @dragon.master_scope)()
+
+                [ get character ]
+                dragon.address_to_cell(workspace:current_file:progress, dragon.ascii_character.byte_size)(character, advancement)
+
+                [ DEBUG ]
+                dragon.print.character(character)()
+                dragon.copy(advancement)(workspace:current_file:progress)
+                dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index)
+                dragon.jump.top(dragon.always, @larse.one_file)()
+
+                [ get name ]
+
+                [ check for equals ]
+
+                [ check for name ]
+                @larse.one_file.search.alias_name dragon.never = {
+                    [ todo ]
+                }
+
+                [ check for left parenthesis ]
+                @larse.one_file.search.structure_name dragon.never = {
+                    [ todo ]
+                }
+            [ } ]
+
+            [ search for name character ]
+            @larse.one_file.search.function_name dragon.never = {
+                [ todo ]
+            }
+
+            [ otherwise, error ]
+        }
+
+        [ advance files current ]
+        dragon.integer.add(workspace:current_files:progress, buffer.byte_size)(workspace:current_files:progress)
+
+        [ next file index ]
+        dragon.integer.add(workspace:current_text_location:file_index, dragon.constant.1)(workspace:current_text_location:file_index)
+
+        [ next file larse ]
+        dragon.jump.top(dragon.always, @larse.all_files)()
+    }
+
+    [ exit ]
+}
+
+[ skip over whitespace ]
+carolina.larse.skip_whitespace(workspace !carolina.larsing.workspace, error !dragon.error)(workspace !carolina.larsing.workspace, ran_out_of_characters !dragon.cell, error !dragon.error) = {
+    [ setup characters ]
+    dragon.set(dragon.integer.32)(whitespace.range.end)
+    dragon.pack(dragon.constant.0, whitespace.range.end)(whitespace !dragon.buffer)
+    dragon.set(dragon.hexadecimal.0A)(new_line)
+    dragon.set(dragon.hexadecimal.5B)(left_square_bracket)
+    dragon.set(dragon.hexadecimal.5D)(right_square_bracket)
+
+    [ setup comment depth ]
+    dragon.copy(dragon.constant.0)(comment_depth)
+
+    [ loop over characters ]
+    @skip_whitespace dragon.always = {
+        [ make sure there are more characters to read ]
+        dragon.current.within_range(workspace:current_file)(in_range, ran_out_of_characters)
+        @ran_out_of_characters ran_out_of_characters = {
+            [ check to see if a comment was not closed, if not then error ]
+            dragon.integer.within_range(dragon.constant.0, comment_depth, dragon.constant.0)(closed, not_closed)
+            @comment_not_closed not_closed = {
+                [ raise error ]
+                dragon.set("Larser Error: A nested comment was not closed all the way and ends abruptly at the current file's end.")(error_message)
+                carolina.error.generate(error_message, workspace:current_text_location)(error)
+            }
+
+            [ jump ]
+            dragon.jump.bottom(ran_out_of_characters, @dragon.master_scope)()
+        }
+
+        [ get character ]
+        dragon.address_to_cell(workspace:current_file:progress, dragon.ascii_character.byte_size)(character, advancement)
+
+        [ check if is new line ]
+        dragon.integer.within_range(new_line, character, new_line)(in_range, out_of_range)
+        @new_line_detected in_range = {
+            [ advance line number marker ]
+            dragon.integer.add(workspace:current_text_location:line_number, dragon.constant.1)(workspace:current_text_location:line_number)
+
+            [ advance ]
+            dragon.jump(in_range, @advance)()
+        }
+
+        [ check for left square bracket ]
+        dragon.integer.within_range(left_square_bracket, character, left_square_bracket)(in_range, out_of_range)
+        @left_square_bracket in_range = {
+            [ increment comment depth ]
+            dragon.integer.add(comment_depth, dragon.constant.1)(comment_depth)
+
+            [ next character ]
+            dragon.jump(in_range, @advance)()
+        }
+        
+        [ check for right square bracket ]
+        dragon.integer.within_range(right_square_bracket, character, right_square_bracket)(in_range, out_of_range)
+        @right_square_bracket in_range = {
+            [ check for comment depth error ]
+            dragon.integer.within_range(dragon.constant.0, comment_depth, dragon.constant.0)(in_range, out_of_range)
+            @right_square_bracket.underflow in_range = {
+                [ raise error ]
+                dragon.set("Larser Error: A comment depth underflow occured.")(error_message)
+                carolina.error.generate(error_message, workspace:current_text_location)(error)
+
+                [ exit loop ]
+                dragon.jump.bottom(error:occured, @dragon.master_scope)()
+            }
+
+            [ decrement comment depth ]
+            dragon.integer.subtract(comment_depth, dragon.constant.1)(comment_depth)
+
+            [ next character ]
+            dragon.jump(dragon.always, @advance)()
+        }
+
+        [ check if is not nested ]
+        dragon.integer.within_range(dragon.constant.0, comment_depth, dragon.constant.0)(in_range, out_of_range)
+        @nested_comment_remaining out_of_range = {
+            dragon.jump(out_of_range, @advance)()
+        }
+
+        [ check if is normal whitespace ]
+        dragon.integer.within_range(whitespace:start, character, whitespace:end)(in_range, out_of_range)
+        @whitespace_remaining in_range = {
+            dragon.jump(in_range, @advance)()
+        }
+
+        [ no more whitespace to skip ]
+        dragon.jump.bottom(dragon.always, @dragon.master_scope)()
+
+        [ advancement marker ]
+        @advance
+
+        [ advance current and statistics ]
+        dragon.copy(advancement)(workspace:current_file:progress)
+        dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index)
+
+        [ jump to start of loop ]
+        dragon.jump.top(dragon.always, @skip_whitespace)()
+    }
+}
+
+[ open larsling program ]
+carolina.open.larsling.program()(program !carolina.larsling.program) = {
+    [ setup baked data ]
+    dragon.set(dragon.integer.2048)(multiplier)
+    dragon.pack.null()(alias !carolina.larsling.alias)
+    dragon.pack.null()(structure !carolina.larsling.structure)
+    dragon.pack.null()(function !carolina.larsling.function)
+
+    [ calculate increases ]
+    dragon.structure.byte_size(alias)(alias.byte_size)
+    dragon.structure.byte_size(structure)(structure.byte_size)
+    dragon.structure.byte_size(function)(function.byte_size)
+    dragon.integer.multiply(alias.byte_size, multiplier)(alias.increase)
+    dragon.integer.multiply(structure.byte_size, multiplier)(structure.increase)
+    dragon.integer.multiply(function.byte_size, multiplier)(function.increase)
+
+    [ open lists ]
+    dragon.list.open(alias.increase)(program:aliases)
+    dragon.list.open(structure.increase)(program:structures)
+    dragon.list.open(function.increase)(program:functions)
+}

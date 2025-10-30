@@ -1,6 +1,9 @@
 [ aliases ]
 !basic.string = !carolina.buffer
 
+[ comments ]
+[[[[[]][][[][]]]]]
+
 [ structures ]
 !basic.structure = (
     string !basic.string,
