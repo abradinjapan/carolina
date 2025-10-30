@@ -132,6 +132,7 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
     dragon.pack.null()(dummy.buffer !dragon.buffer)
     dragon.structure.byte_size(dummy.buffer)(buffer.byte_size)
     dragon.set(dragon.hexadecimal.21)(exclamation_point)
+    dragon.set(dragon.hexadecimal.3D)(equals_sign)
 
     [ setup blank error ]
     dragon.error.setup_blank()(error)
@@ -167,39 +168,46 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
 
         [ loop over file characters ]
         @larse.one_file dragon.always = {
-            [ check for more characters ]
-            dragon.current.within_range(workspace:current_file)(in_range, out_of_range)
-            dragon.jump.bottom(out_of_range, @larse.one_file)()
-
             [ skip whitespace ]
             carolina.larse.skip_whitespace(workspace, error)(workspace, ran_out_of_characters, error)
             dragon.jump.bottom(ran_out_of_characters, @larse.one_file)()
             dragon.jump.bottom(error:occured, @dragon.master_scope)()
 
+            [ get character ]
+            dragon.address_to_cell(workspace:current_file:progress, dragon.ascii_character.byte_size)(character, advancement)
+
             [ search for exclamation point ]
-            [ dragon.integer.within_range(exclamation_point, character, exclamation_point)(in_range, out_of_range) ]
-            [ @larse.one_file.search.exclamation_point in_range = { ]
-                [ advance character & advance statistics ]
-                [ dragon.copy(advancement)(workspace:current_file:progress)
-                dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index) ]
+            dragon.integer.within_range(exclamation_point, character, exclamation_point)(in_range, out_of_range)
+            @larse.one_file.search.data_definition.exclamation_point in_range = {
+                [ advance character & advance statistics past exclamation point ]
+                dragon.copy(advancement)(workspace:current_file:progress)
+                dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index)
+
+                [ DEBUG ]
+                dragon.set("Found exclamation point!%0a;")(message)
+                dragon.print.buffer_as_string(message)()
 
                 [ skip whitespace ]
                 carolina.larse.skip_whitespace(workspace, error)(workspace, ran_out_of_characters, error)
                 dragon.jump.bottom(ran_out_of_characters, @larse.one_file)()
                 dragon.jump.bottom(error:occured, @dragon.master_scope)()
 
-                [ get character ]
-                dragon.address_to_cell(workspace:current_file:progress, dragon.ascii_character.byte_size)(character, advancement)
+                [ get & check name ]
+                carolina.larse.name(workspace)(workspace, text, found, not_found)
+                @larse.one_file.search.data_definition.name not_found = {
+                    [ error ]
+                    dragon.set("Larsing Error: When searching for the name of a alias or function definition, the first name was not found.")(message)
+                    carolina.error.generate(message, workspace:current_text_location)(error)
+
+                    [ quit ]
+                    dragon.jump.bottom(error:occured, @dragon.master_scope)()
+                }
 
                 [ DEBUG ]
-                dragon.print.character(character)()
-                dragon.copy(advancement)(workspace:current_file:progress)
-                dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index)
-                dragon.jump.top(dragon.always, @larse.one_file)()
-
-                [ get name ]
-
-                [ check for equals ]
+                dragon.set("Found name: ")(message)
+                dragon.print.buffer_as_string(message)()
+                dragon.print.buffer_as_string(text)()
+                dragon.print.new_line()()
 
                 [ check for name ]
                 @larse.one_file.search.alias_name dragon.never = {
@@ -210,7 +218,13 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
                 @larse.one_file.search.structure_name dragon.never = {
                     [ todo ]
                 }
-            [ } ]
+
+                [ DEBUG ]
+                [ dragon.print.character(character)()
+                dragon.copy(advancement)(workspace:current_file:progress)
+                dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index)
+                dragon.jump.top(dragon.always, @larse.one_file)() ]
+            }
 
             [ search for name character ]
             @larse.one_file.search.function_name dragon.never = {
@@ -231,6 +245,69 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
     }
 
     [ exit ]
+}
+
+[ larse a name ]
+carolina.larse.name(workspace !carolina.larsing.workspace)(workspace !carolina.larsing.workspace, text !dragon.buffer, found !dragon.cell, not_found !dragon.cell) = {
+    [ setup characters ]
+    dragon.set(dragon.hexadecimal.61)(lowercase.start)
+    dragon.set(dragon.hexadecimal.7A)(lowercase.end)
+    dragon.set(dragon.hexadecimal.41)(uppercase.start)
+    dragon.set(dragon.hexadecimal.5A)(uppercase.end)
+    dragon.set(dragon.hexadecimal.30)(decimal_digits.start)
+    dragon.set(dragon.hexadecimal.39)(decimal_digits.end)
+    dragon.set(dragon.hexadecimal.5F)(underscore)
+    dragon.set(dragon.hexadecimal.2E)(period)
+
+    [ setup text start ]
+    dragon.integer.subtract(workspace:current_file:progress, dragon.constant.1)(progress.end)
+    dragon.pack(workspace:current_file:progress, progress.end)(text !dragon.buffer)
+    dragon.copy(dragon.false)(found)
+    dragon.copy(dragon.true)(not_found)
+
+    [ check characters ]
+    @check_characters dragon.always = {
+        [ make sure there are more characters to read ]
+        dragon.current.within_range(workspace:current_file)(in_range, ran_out_of_characters)
+        @ran_out_of_characters ran_out_of_characters = {
+            [ if not, quit ]
+            dragon.jump.bottom(ran_out_of_characters, @dragon.master_scope)()
+        }
+
+        [ get character ]
+        dragon.address_to_cell(workspace:current_file:progress, dragon.ascii_character.byte_size)(character, advancement)
+
+        [ check character ]
+        dragon.integer.within_range(lowercase.start, character, lowercase.end)(in_range, out_of_range)
+        dragon.jump(in_range, @found_character)()
+        dragon.integer.within_range(uppercase.start, character, uppercase.end)(in_range, out_of_range)
+        dragon.jump(in_range, @found_character)()
+        dragon.integer.within_range(decimal_digits.start, character, decimal_digits.end)(in_range, out_of_range)
+        dragon.jump(in_range, @found_character)()
+        dragon.integer.within_range(underscore, character, underscore)(in_range, out_of_range)
+        dragon.jump(in_range, @found_character)()
+        dragon.integer.within_range(period, character, period)(in_range, out_of_range)
+        dragon.jump(in_range, @found_character)()
+
+        [ did not find character, quit loop ]
+        dragon.jump.bottom(dragon.always, @dragon.master_scope)()
+
+        [ found character ]
+        @found_character
+
+        [ update output ]
+        dragon.copy(dragon.true)(found)
+        dragon.copy(dragon.false)(not_found)
+
+        [ advance text ]
+        dragon.integer.add(text:end, dragon.ascii_character.byte_size)(text:end)
+
+        [ advance current ]
+        dragon.integer.add(workspace:current_file:progress, dragon.ascii_character.byte_size)(workspace:current_file:progress)
+
+        [ jump to loop start ]
+        dragon.jump.top(dragon.always, @check_characters)()
+    }
 }
 
 [ skip over whitespace ]
