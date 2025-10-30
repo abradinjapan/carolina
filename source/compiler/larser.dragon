@@ -196,7 +196,7 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
                 carolina.larse.name(workspace)(workspace, text, found, not_found)
                 @larse.one_file.search.data_definition.name not_found = {
                     [ error ]
-                    dragon.set("Larsing Error: When searching for the name of a alias or function definition, the first name was not found.")(message)
+                    dragon.set("Larsing Error: When searching for the name of an alias or a structure definition, the first name was not found.")(message)
                     carolina.error.generate(message, workspace:current_text_location)(error)
 
                     [ quit ]
@@ -209,13 +209,40 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
                 dragon.print.buffer_as_string(text)()
                 dragon.print.new_line()()
 
-                [ check for name ]
-                @larse.one_file.search.alias_name dragon.never = {
-                    [ todo ]
+                [ skip whitespace ]
+                carolina.larse.skip_whitespace(workspace, error)(workspace, ran_out_of_characters, error)
+                dragon.jump.bottom(ran_out_of_characters, @larse.one_file)()
+                dragon.jump.bottom(error:occured, @dragon.master_scope)()
+
+                [ get character ]
+                dragon.address_to_cell(workspace:current_file:progress, dragon.ascii_character.byte_size)(character, advancement)
+
+                [ check for equals ]
+                dragon.integer.within_range(equals_sign, character, equals_sign)(in_range, out_of_range)
+                @larse.one_file.search.data_definition.equals_sign out_of_range = {
+                    [ error ]
+                    dragon.set("Larsing Error: When searching for the equals sign of an alias or a structure definition, it was not found.")(message)
+                    carolina.error.generate(message, workspace:current_text_location)(error)
+
+                    [ quit ]
+                    dragon.jump.bottom(error:occured, @dragon.master_scope)()
                 }
+
+                [ advance character & advance statistics past equals sign ]
+                dragon.copy(advancement)(workspace:current_file:progress)
+                dragon.integer.add(workspace:current_text_location:character_index, dragon.ascii_character.byte_size)(workspace:current_text_location:character_index)
+
+                [ DEBUG ]
+                dragon.set("Found equals sign!%0a;")(message)
+                dragon.print.buffer_as_string(message)()
 
                 [ check for left parenthesis ]
                 @larse.one_file.search.structure_name dragon.never = {
+                    [ todo ]
+                }
+
+                [ check for name ]
+                @larse.one_file.search.alias_name dragon.never = {
                     [ todo ]
                 }
 
