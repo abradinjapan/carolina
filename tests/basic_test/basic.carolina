@@ -13,13 +13,13 @@
 [ functions ]
 carolina.main()() = {
     [ hello world ]
-    carolina.print.buffer_as_string("Made in North Carolina!%0a;")()
+    carolina.print.string("Made in North Carolina!%0a;")()
 
     [ test offset ]
     @offset
 
     [ test scope ]
     @scope carolina.always = {
-        carolina.print.buffer_as_string("WOO!%0a;")()
+        carolina.print.string("WOO!%0a;")()
     }
 }
