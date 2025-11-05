@@ -230,6 +230,9 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
                     dragon.integer.multiply(dragon.constant.32, structure_argument.byte_size)(increase)
                     dragon.list.open(increase)(structure_members)
 
+                    [ setup argument counter ]
+                    dragon.copy(dragon.constant.0)(argument_count)
+
                     [ search for members ]
                     @larse.one_file.search.data_content.structure_definition.member_definition dragon.always = {
                         [ check for closing right parenthesis ]
@@ -248,11 +251,16 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
                         }
 
                         [ larse member definition ]
-                        
+                        [ todo ]
                     }
                 }
 
                 [ error, invalid syntax ]
+                dragon.set("Larsing Error: Was searching for either an alias definition or structure definition after detecting an initial definition but neither was found.")(error_message)
+                carolina.error.generate(error_message, workspace:current_text_location)(error)
+
+                [ quit ]
+                dragon.jump.bottom(error:occured, @dragon.master_scope)()
             }
 
             [ search for name character ]
@@ -274,6 +282,56 @@ carolina.larse(user_code !dragon.buffer)(output !carolina.larsling.program, erro
     }
 
     [ exit ]
+}
+
+[ larse a structure definition argument ]
+carolina.larse.structure.argument(workspace !carolina.larsing.workspace, argument_index !dragon.cell, error !dragon.error)(workspace !carolina.larsing.workspace, argument !carolina.larsling.structure.argument, error !dragon.error) = {
+    [ setup constants ]
+    dragon.set(dragon.hexadecimal.2C)(comma)
+
+    [ check for first argument (so it doesn't require a preceeding comma) ]
+    dragon.integer.within_range(dragon.constant.0, argument_index, dragon.constant.0)(is_first_argument, not_first_argument)
+    @larse.structure_argument.is_first_argument not_first_argument = {
+        [ check for comma ]
+        carolina.larse.check_for_character(workspace, comma, comma, dragon.true, error)(workspace, ran_out_of_characters, found, not_found, error)
+        dragon.jump.bottom(ran_out_of_characters, @dragon.master_scope)()
+        dragon.jump.bottom(error:occured, @dragon.master_scope)()
+
+        [ comma not found ]
+        @larse.structure_argument.comma_missing not_found = {
+            [ error ]
+            dragon.set("Larsing Error: Was searching for the next structure member definition but no comma was found to separate it. Nor was the arguments' closer found.")(error_message)
+            carolina.error.generate(error_message, workspace:current_text_location)(error)
+
+            [ quit ]
+            dragon.jump.bottom(error:occured, @dragon.master_scope)()
+        }
+    }
+
+    [ skip whitespace ]
+    carolina.larse.skip_whitespace(workspace, error)(workspace, ran_out_of_characters, error)
+    dragon.jump.bottom(ran_out_of_characters, @dragon.master_scope)()
+    dragon.jump.bottom(error:occured, @dragon.master_scope)()
+
+    [ get & check name ]
+    carolina.larse.name(workspace)(workspace, argument.name, found, not_found)
+    @larse.structure_argument.name.not_found not_found = {
+        [ error ]
+        dragon.set("Larsing Error: Missing structure argument member name.")(error_message)
+        carolina.error.generate(error_message, workspace:current_text_location)(error)
+
+        [ quit ]
+        dragon.jump.bottom(error:occured, @dragon.master_scope)()
+    }
+
+    [ get type ]
+    dragon.set("Larsing Error: Missing structure argument member type.")(message)
+    carolina.larse.type(workspace, message, error)(workspace, argument.type, ran_out_of_characters, found, not_found, error)
+    dragon.jump.bottom(ran_out_of_characters, @dragon.master_scope)()
+    dragon.jump.bottom(error:occured, @dragon.master_scope)()
+
+    [ pack data ]
+    dragon.pack(argument.name, argument.type)(argument !carolina.larsling.structure.argument)
 }
 
 [ larse a type ]
